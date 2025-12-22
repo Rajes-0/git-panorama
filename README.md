@@ -1,162 +1,91 @@
-# GitStats
+# Git Panorama
 
-**Understand your engineering organization through data.**
+> Who's shipping? What's shipping? Where's the effort going?
 
-GitStats provides cross-referenced analytics across teams, repositories, and individual contributors. See who's contributing where, which repositories are most active, and how your engineering efforts are distributed across projects.
+Your git history knows. Let's ask it.
 
 ---
 
-## What You Get
+## The Problem
 
-### Business Insights
+You have questions:
+- Which repos are actually maintained vs. quietly dying?
+- Who are the domain experts on each project?
+- Where is engineering time *actually* going?
+- Is this person overloaded or coasting?
 
-**Team Performance**
-- Contribution trends over time
-- Active vs. inactive repositories
-- Team velocity and output metrics
-- Cross-team collaboration patterns
+Your git history has answers. But it's scattered across dozens of repositories, thousands of commits, and multiple email addresses per person.
 
-**Resource Allocation**
-- Effort distribution across projects
-- Contributor activity by repository
-- Identify bottlenecks and dependencies
-- Understand where engineering time is spent
-
-**Individual Contributions**
-- Personal contribution history
-- Repository ownership and expertise
-- Activity patterns and engagement
-- Recognition and performance data
-
-### Cross-Referenced Views
-
-The power of GitStats is in the relationships:
-
-```
-Team View          Repository View      Personal View
-    ↓                     ↓                   ↓
-    └─────────────────────┴───────────────────┘
-                          │
-                    Unified Data
-                          │
-    "Who works on what?" "Where is effort spent?" "What's the impact?"
-```
-
-**Example Questions Answered:**
-- Which repositories have the most contributors?
-- Who are the domain experts for each project?
-- How is engineering effort distributed across teams?
-- Which projects are actively maintained vs. stagnant?
-- What's the contribution pattern of each team member?
+**Git Panorama** aggregates it all, deduplicates contributors, and surfaces insights through beautiful Grafana dashboards.
 
 ---
 
 ## Quick Start
 
 ```bash
-./install.sh  # One-time setup: install dependencies and start services
-./run.sh      # Regular usage: clone/update repos, analyze, and update dashboards
+./install.sh  # Once: dependencies + services
+./run.sh      # Always: clone/update repos, analyze, upload
 ```
 
-**View Dashboards:** http://localhost:3000 (admin/admin)
+Open http://localhost:3000 (admin/admin).
 
-That's it. The system handles the rest - including cloning new repositories from config.yaml.
+Done.
+
+---
+
+## What You Get
+
+### Four Dashboards
+
+**Team Overview** - Org-level metrics. Commits over time, top contributors, velocity trends.
+
+**Repository Overview** - Project comparison. Which repos are hot, which are not, who's working where.
+
+**Personal Overview** - Individual impact. Commit history, lines changed, expertise areas.
+
+**Contribution Calendar** - GitHub-style heatmap. Because everyone loves green squares.
+
+### Cross-Referenced Everything
+
+Click a person → see their repos.  
+Click a repo → see its contributors.  
+Click a date range → filter everything.
+
+The power is in the relationships.
 
 ---
 
 ## Installation
 
-### Prerequisites
-
+**Prerequisites:**
 - Docker Desktop
-- Python 3.8+
-- Git access to your repositories
+- Python 3.12+
+- Git access to your repos
 
-### Setup (5 minutes)
+**Setup:**
 
 ```bash
-# 1. Clone and install (one-time)
 git clone <this-repo>
-cd gitstats
+cd git-panorama
 ./install.sh
 
-# 2. Configure repositories and team members
+# Configure
 cp config.yaml.sample config.yaml
-# Edit config.yaml to:
-#   - Add repository URLs to repositories.repository_urls
-#   - Map email addresses to people in email_mapping
+# Edit: add repo URLs, map emails to people
 
-# 3. Generate insights (this will clone repos automatically)
+# Run
 ./run.sh
 ```
 
-**Done.** Open http://localhost:3000 to see your dashboards.
-
----
-
-## Dashboards
-
-### 1. Team Overview
-
-**Purpose:** Understand overall engineering activity and trends.
-
-- Total commits and lines changed over time
-- Top contributors across all repositories
-- Active vs. inactive projects
-- Team velocity trends
-
-**Use Cases:**
-- Monthly/quarterly engineering reviews
-- Team capacity planning
-- Identifying high-impact contributors
-- Spotting activity patterns
-
-### 2. Repository Overview
-
-**Purpose:** Compare projects and understand resource allocation.
-
-- Commits by repository
-- Contributors per project
-- Activity heatmaps
-- Repository health indicators
-
-**Use Cases:**
-- Project prioritization decisions
-- Resource allocation reviews
-- Identifying unmaintained projects
-- Understanding project complexity
-
-### 3. Personal Overview
-
-**Purpose:** Individual contributor insights and recognition.
-
-- Personal commit history
-- Lines changed by contributor
-- Repository contributions
-- Activity patterns
-
-**Use Cases:**
-- Performance reviews
-- Recognizing contributions
-- Understanding expertise areas
-- Career development discussions
-
-### 4. Contribution Calendar
-
-**Purpose:** GitHub-style activity visualization.
-
-- Visual activity heatmap
-- Contribution patterns
-- Dynamic filtering by repository/author
-- Spot trends and anomalies
+That's it. Open http://localhost:3000.
 
 ---
 
 ## Configuration
 
-### Email Mapping (Recommended)
+### Email Mapping (Important!)
 
-Contributors often use multiple email addresses. Map them to ensure accurate attribution:
+People use multiple emails. Map them or they appear as separate contributors:
 
 ```yaml
 email_mapping:
@@ -166,36 +95,27 @@ email_mapping:
     - "jane@personal.com"
 ```
 
-**Why this matters:** Without mapping, Jane appears as three different people in your analytics.
+Find unmapped emails:
+```bash
+python3 scripts/find_unmapped_emails.py config.yaml
+```
 
-### Repository Selection
+### Repository URLs
+
+List repos to auto-clone:
 
 ```yaml
 repositories:
-  base_directory: "./repositories"
-  
-  # Analyze specific repos (empty = all)
-  repositories_to_analyze: []
-  
-  # URLs for automated cloning
   repository_urls:
     - "git@github.com:yourorg/repo1.git"
     - "git@github.com:yourorg/repo2.git"
 ```
 
-### Date Range (Optional)
-
-Focus on recent activity:
-
-```yaml
-analysis:
-  start_date: "2024-01-01"  # or leave empty for all time
-  end_date: ""               # empty = until now
-```
+Leave `repositories_to_analyze` empty to analyze all cloned repos.
 
 ### File Exclusions
 
-Exclude generated files to focus on meaningful code:
+Exclude noise:
 
 ```yaml
 exclusions:
@@ -204,86 +124,56 @@ exclusions:
       description: "Lock files"
     - pattern: ".*/node_modules/.*"
       description: "Dependencies"
+    - pattern: ".*-generated\\..*"
+      description: "Generated code"
 ```
 
-**Why this matters:** Including generated files inflates metrics and obscures real contributions.
+Lock files and generated code aren't real contributions. Exclude them.
+
+### Date Range (Optional)
+
+Focus on recent activity:
+
+```yaml
+analysis:
+  start_date: "2024-01-01"  # or empty for all time
+  end_date: ""               # empty = now
+```
 
 ---
 
-## Daily Operations
+## Daily Usage
 
-### Update Statistics
+### Update Everything
 
 ```bash
 ./run.sh
 ```
 
-**Safe to run anytime.** The script will:
-1. Clone any new repositories from config.yaml
-2. Fetch latest changes from all existing repositories
-3. Analyze commits and generate statistics
-4. Upload data to Elasticsearch
+Idempotent. Run it as often as you want. It will:
+1. Clone new repos from config
+2. Fetch latest changes
+3. Analyze commits
+4. Upload to Elasticsearch
 
-The system is idempotent—running multiple times won't create duplicates.
+No duplicates. No corruption. Just fresh data.
 
-**Automate it:**
+### Automate It
+
 ```bash
-# Add to crontab for daily updates at 2 AM
-0 2 * * * cd /path/to/gitstats && ./run.sh >> logs/run.log 2>&1
+# Cron: daily at 2 AM
+0 2 * * * cd /path/to/git-panorama && ./run.sh >> logs/run.log 2>&1
 ```
 
-### View Current Data
+### Check Data
 
 ```bash
-# Check document counts
-curl http://localhost:9200/_cat/indices/git-*?v
-
-# View in browser
-open http://localhost:1358  # Elasticsearch browser
-open http://localhost:3000  # Grafana dashboards
-```
-
-### Find Unmapped Emails
-
-```bash
-python3 scripts/find_unmapped_emails.py config.yaml
-```
-
-This shows email addresses not yet mapped to people in your config.
-
----
-
-## Testing
-
-### Verify Services
-
-```bash
-# All services running?
-docker compose ps
-
-# Elasticsearch healthy?
-curl http://localhost:9200/_cluster/health
-
-# Grafana responding?
-curl http://localhost:3000/api/health
-```
-
-### Verify Data
-
-```bash
-# Check data count
+# Document count
 curl http://localhost:9200/git-commits/_count
 
-# Browse data visually
-open http://localhost:1358
+# Browse data
+open http://localhost:1358  # Elasticsearch browser
 ```
-
-### Test Dashboards
-
-1. Open http://localhost:3000 (admin/admin)
-2. Navigate to Dashboards
-3. Verify panels load data
-4. Test filters (repository, author, date range)
 
 ---
 
@@ -293,33 +183,33 @@ open http://localhost:1358
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| Grafana | 3000 | Dashboards and visualization |
-| Elasticsearch | 9200 | Data storage and search |
+| Grafana | 3000 | Dashboards |
+| Elasticsearch | 9200 | Data storage |
 | Dejavu | 1358 | Data browser (optional) |
 
 ### Data Flow
 
 ```
-Git Repositories
+Git Repos
     ↓
-Python Analyzers (parallel processing)
+Python (parallel analysis)
     ↓
-Elasticsearch (idempotent storage)
+Elasticsearch (idempotent upsert)
     ↓
-Grafana Dashboards (real-time queries)
+Grafana (real-time queries)
 ```
 
-### How Idempotency Works
+### Idempotency
 
-Each commit has a unique ID: `{repository}_{commit_hash}`
+Each commit gets a unique ID: `{repository}_{commit_hash}`
 
-Running `./run.sh` multiple times updates existing data instead of creating duplicates.
+Running `./run.sh` multiple times updates existing data instead of duplicating it.
 
 ### Smart Caching
 
-The system caches analysis results and only re-analyzes repositories when they change (detected via git refs). This makes subsequent updates fast.
+Analysis results are cached. Re-analysis only happens when repos change (detected via git refs).
 
-**Clear cache to force re-analysis:**
+Clear cache to force full re-analysis:
 ```bash
 ./scripts/clear-cache.sh
 ```
@@ -331,19 +221,20 @@ The system caches analysis results and only re-analyzes repositories when they c
 ### No Data in Dashboards
 
 ```bash
-# 1. Verify Elasticsearch has data
+# 1. Verify data exists
 curl http://localhost:9200/git-commits/_count
 
 # 2. Clear Grafana cache
 ./scripts/clear-grafana-cache.sh
 
-# 3. Refresh browser (Cmd+Shift+R)
+# 3. Hard refresh browser
+# Cmd+Shift+R (Mac) / Ctrl+Shift+R (Windows/Linux)
 ```
 
-### Services Not Starting
+### Services Won't Start
 
 ```bash
-# Check Docker is running
+# Check Docker
 docker ps
 
 # View logs
@@ -360,7 +251,7 @@ docker compose restart
 # Check dependencies
 python3 -c "import yaml; import dateutil"
 
-# Reinstall if needed
+# Reinstall
 uv pip install -r requirements.txt --system
 
 # Validate config
@@ -369,39 +260,44 @@ python3 -c "import yaml; yaml.safe_load(open('config.yaml'))"
 
 ### Port Conflicts
 
-Edit `docker-compose.yml` to change ports if 3000 or 9200 are already in use.
+Edit `docker-compose.yml` to change ports if 3000 or 9200 are taken.
 
 ---
 
-## Production Deployment
+## Advanced
 
-### Security Checklist
+### Multiple Teams
 
-- [ ] Change default Grafana password
-- [ ] Set Elasticsearch password in `.env`
-- [ ] Use HTTPS for external access
-- [ ] Restrict network access (firewall)
-- [ ] Regular backups of `./storage/elasticsearch/`
-
-### Environment Variables
-
-Create `.env` file:
+Use separate configs:
 
 ```bash
-ELASTIC_PASSWORD=your-secure-password
-GF_ADMIN_PASSWORD=your-secure-password
+CONFIG_FILE=config-team-a.yaml ./run.sh
+CONFIG_FILE=config-team-b.yaml ./run.sh
 ```
 
-### Backup & Restore
+### Custom Dashboards
 
-```bash
-# Backup
-tar -czf gitstats-backup-$(date +%Y%m%d).tar.gz ./storage/elasticsearch/
+1. Create in Grafana UI
+2. Export as JSON
+3. Save to `config/grafana/provisioning/dashboards/`
+4. Restart: `docker restart gitstats-grafana`
 
-# Restore
-docker compose down
-tar -xzf gitstats-backup-YYYYMMDD.tar.gz
-docker compose up -d
+### Performance Tuning
+
+For large repos:
+
+```yaml
+# Limit date range
+analysis:
+  start_date: "2024-01-01"
+
+# Exclude merge commits
+analysis:
+  exclude_merge_commits: true
+
+# More parallelism
+parallelization:
+  max_workers: 8  # increase for more CPU cores
 ```
 
 ### External Elasticsearch
@@ -414,47 +310,42 @@ export ES_PORT=9200
 
 ---
 
-## Advanced Usage
+## Production
 
-### Multiple Teams
+### Security Checklist
 
-Use separate config files:
+- [ ] Change default Grafana password
+- [ ] Set Elasticsearch password in `.env`
+- [ ] Use HTTPS for external access
+- [ ] Restrict network access (firewall)
+- [ ] Regular backups of `./storage/elasticsearch/`
+
+### Environment Variables
+
+Create `.env`:
 
 ```bash
-CONFIG_FILE=config-team-a.yaml ./run.sh
-CONFIG_FILE=config-team-b.yaml ./run.sh
+ELASTIC_PASSWORD=your-secure-password
+GF_ADMIN_PASSWORD=your-secure-password
 ```
 
-### Custom Dashboards
+### Backup & Restore
 
-1. Create dashboard in Grafana UI
-2. Export as JSON
-3. Save to `config/grafana/provisioning/dashboards/`
-4. Restart: `docker restart gitstats-grafana`
+```bash
+# Backup
+tar -czf backup-$(date +%Y%m%d).tar.gz ./storage/elasticsearch/
 
-### Performance Tuning
-
-For large repositories:
-
-```yaml
-# Limit date range
-analysis:
-  start_date: "2024-01-01"
-
-# Exclude merge commits
-analysis:
-  exclude_merge_commits: true
-
-# Adjust parallelization
-parallelization:
-  max_workers: 8  # increase for more CPU cores
+# Restore
+docker compose down
+tar -xzf backup-YYYYMMDD.tar.gz
+docker compose up -d
 ```
 
 ---
 
 ## Configuration Reference
 
-### Complete config.yaml Structure
+Complete `config.yaml` structure:
 
 ```yaml
 # Email mapping (recommended)
@@ -463,7 +354,7 @@ email_mapping:
     - "email1@company.com"
     - "email2@company.com"
 
-# Repository configuration
+# Repositories
 repositories:
   base_directory: "./repositories"
   repositories_to_analyze: []  # empty = all
@@ -507,18 +398,62 @@ parallelization:
 
 ---
 
+## Tech Stack
+
+- **Docker Compose** - Container orchestration
+- **Elasticsearch 8.17** - Data storage and search
+- **Grafana** - Visualization
+- **Python 3.12+** - Analysis scripts
+- **uv** - Fast Python package manager (10-100x faster than pip)
+
+---
+
+## Philosophy
+
+**Simple by default.** Two commands: `./install.sh` once, `./run.sh` daily.
+
+**Safe to experiment.** Idempotent operations. Run `./run.sh` as often as you want.
+
+**Data-driven decisions.** Base engineering choices on actual activity, not gut feelings.
+
+**Privacy-first.** All data stays on your infrastructure. No external services.
+
+---
+
+## FAQ
+
+**Q: Why not just use GitHub Insights?**  
+A: GitHub Insights is per-repo. This is cross-repo, cross-team, with custom email mapping and file exclusions.
+
+**Q: Does this work with GitLab/Bitbucket?**  
+A: Yes. It analyzes local git repos. Doesn't matter where they're hosted.
+
+**Q: Can I analyze private repos?**  
+A: Yes. Clone them locally (with proper SSH keys), add to config, run `./run.sh`.
+
+**Q: How much disk space do I need?**  
+A: Depends on repo count/size. Budget ~100MB per 10k commits in Elasticsearch.
+
+**Q: Can I run this on a server?**  
+A: Yes. See Production section for security hardening.
+
+**Q: What about monorepos?**  
+A: Works fine. You might want custom file exclusions for generated code.
+
+---
+
 ## Maintenance
 
 ### Regular Tasks
 
 ```bash
-# Daily: Update statistics (automate via cron)
+# Daily: update stats (automate via cron)
 ./run.sh
 
-# Weekly: Check for unmapped emails
+# Weekly: check for unmapped emails
 python3 scripts/find_unmapped_emails.py config.yaml
 
-# Monthly: Backup data
+# Monthly: backup data
 tar -czf backup-$(date +%Y%m%d).tar.gz ./storage/elasticsearch/
 ```
 
@@ -537,68 +472,18 @@ docker stats
 
 ---
 
-## Technology Stack
-
-- **Docker Compose** - Container orchestration
-- **Elasticsearch 8.17** - Data storage and search
-- **Grafana** - Visualization and dashboards
-- **Python 3.8+** - Analysis scripts
-- **uv** - Fast Python package manager (10-100x faster than pip)
-
----
-
-## Support
-
-### Common Issues
-
-**Port conflicts:** Change ports in `docker-compose.yml`  
-**Memory errors:** Increase ES heap size in `docker-compose.yml`  
-**Slow analysis:** Adjust parallelization in `config.yaml`  
-**Missing data:** Check repository access and config validation
-
-### Logs
-
-```bash
-# Application logs
-tail -f logs/run.log
-
-# Docker logs
-docker compose logs -f
-docker compose logs elasticsearch
-docker compose logs grafana
-```
-
-### Getting Help
-
-1. Check logs for error messages
-2. Verify configuration: `python3 -c "import yaml; yaml.safe_load(open('config.yaml'))"`
-3. Test services individually (see Testing section)
-4. Review configuration reference above
-
----
-
-## Philosophy
-
-**Simple by default.** Two commands: `./install.sh` once, then `./run.sh` daily.
-
-**Safe to experiment.** Idempotent operations mean you can run `./run.sh` as often as you want without breaking anything.
-
-**Data-driven insights.** Make engineering decisions based on actual activity, not assumptions.
-
-**Respect privacy.** All data stays on your infrastructure. No external services required.
-
----
-
 ## What's Next?
 
-1. **Start small:** Analyze a few repositories first
-2. **Refine configuration:** Add email mappings as you discover them
-3. **Automate updates:** Set up daily cron jobs with `./run.sh`
-4. **Share insights:** Use dashboards in team meetings
-5. **Iterate:** Customize dashboards for your specific needs
+1. **Start small** - Analyze a few repos first
+2. **Refine config** - Add email mappings as you discover them
+3. **Automate** - Set up daily cron jobs
+4. **Share insights** - Use dashboards in team meetings
+5. **Customize** - Build dashboards for your specific needs
 
-The goal is simple: understand your engineering organization better. GitStats gives you the data. You bring the insights.
+The goal: understand your engineering org better. Git Panorama gives you the data. You bring the insights.
 
 ---
 
-*Built with care for engineering teams who value transparency and data-driven decisions.*
+*Built for engineering teams who value transparency and data-driven decisions.*
+
+*Questions? Issues? PRs welcome.*
