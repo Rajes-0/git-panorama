@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: Elastic
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData:
+      index: 'git-commits'
+      timeField: 'commit_timestamp'
+      esVersion: '8.0.0'
+      timeInterval: '1d'
+      maxConcurrentShardRequests: 5
+      logMessageField: 'commit_message'
+      includeFrozen: false
+    editable: false

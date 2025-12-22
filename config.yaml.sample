@@ -1,0 +1,301 @@
+# Git Stats Configuration Template
+# Configuration for analyzing git repositories and uploading to Elasticsearch
+#
+# IMPORTANT: This configuration supports idempotent updates!
+# You can safely run the analysis and upload scripts multiple times without creating duplicates.
+# Each commit uses a unique document ID in Elasticsearch:
+#   - Commits: {repository}_{commit_hash}
+#
+# Quick update command: ./run.sh
+#
+# SETUP INSTRUCTIONS:
+# 1. Copy this file to config.yaml: cp config.yaml.sample config.yaml
+# 2. Update the email_mapping section with your team members
+# 3. Update repository_urls with your git repositories
+# 4. Adjust other settings as needed
+
+# ============================================================================
+# Email Mapping
+# ============================================================================
+# Map multiple email addresses to a single person name
+# This ensures contributors who changed email addresses are counted as one person
+email_mapping:
+  "Example Developer":
+    - "developer@example.com"
+    - "dev@company.com"
+  "Jenkins":
+    - "jenkins@ci.example.com"
+    - "github-actions[bot]@users.noreply.github.com"
+
+# ============================================================================
+# Parallelization Configuration
+# ============================================================================
+parallelization:
+  # Maximum number of parallel workers for repository analysis
+  # Default: number of CPU cores (or 4 if CPU count cannot be determined)
+  # Set to 1 to disable parallelization
+  max_workers: null  # null = auto-detect CPU count
+
+# ============================================================================
+# Repository Configuration
+# ============================================================================
+repositories:
+  # Base directory containing all git repositories to analyze
+  base_directory: "./repositories"
+  
+  # List of specific repositories to analyze (leave empty to analyze all)
+  # If empty, all subdirectories in base_directory will be analyzed
+  repositories_to_analyze: []
+  
+  # Git repository URLs to clone/analyze
+  repository_urls:
+    - "git@github.com:yourorg/your-repo.git"
+    # Add more repositories here
+  
+  # Repositories where ALL files should be included (no exclusions)
+  # These are typically build tool repositories where "generated" files are the product
+  include_all_files:
+    - "example-build-repo"
+
+# ============================================================================
+# Analysis Configuration
+# ============================================================================
+analysis:
+  # Date range for analysis (YYYY-MM-DD format)
+  # Leave empty for all time
+  start_date: ""
+  end_date: ""  # Empty means until now
+  
+  # Include commits from all branches (not just main/master)
+  all_branches: true
+  
+  # Exclude merge commits from analysis
+  exclude_merge_commits: true
+  
+  # Output directory for generated reports and temporary files
+  output_directory: "./git-stats"
+
+# ============================================================================
+# Elasticsearch Configuration
+# ============================================================================
+elasticsearch:
+  host: "localhost"
+  port: 9200
+  
+  # Index names
+  commit_index: "git-commits"
+  tag_index: "git-tags"
+  loc_index: "git-loc"
+  
+  # Batch size for bulk uploads
+  bulk_batch_size: 1000
+
+# ============================================================================
+# Git Tags Configuration
+# ============================================================================
+tags:
+  # Enable tag tracking
+  enabled: true
+  
+  # Regex patterns for tags to track (e.g., semver versions)
+  # Only tags matching these patterns will be indexed
+  patterns:
+    - pattern: "^v?\\d+\\.\\d+\\.\\d+$"
+      description: "Semantic versioning (e.g., v1.2.3 or 1.2.3)"
+    - pattern: "^v?\\d+\\.\\d+\\.\\d+-.*$"
+      description: "Semantic versioning with pre-release (e.g., v1.2.3-beta.1)"
+    - pattern: "^release-\\d+\\.\\d+\\.\\d+$"
+      description: "Release tags (e.g., release-1.2.3)"
+
+# ============================================================================
+# File Exclusion Rules
+# ============================================================================
+# Define which files should be excluded from line change analysis
+# This focuses metrics on actual developer-written code
+
+exclusions:
+  # Files to ALWAYS exclude (regex patterns)
+  patterns:
+    # Gradle wrapper files
+    - pattern: ".*gradlew$"
+      description: "Gradle wrapper script"
+    - pattern: ".*gradlew\\.bat$"
+      description: "Gradle wrapper batch file"
+    
+    # Lock files
+    - pattern: ".*/package-lock\\.json$"
+      description: "npm lock file"
+    - pattern: ".*/yarn\\.lock$"
+      description: "Yarn lock file"
+    - pattern: ".*/composer\\.lock$"
+      description: "PHP Composer lock file"
+    - pattern: ".*/Gemfile\\.lock$"
+      description: "Ruby Bundler lock file"
+    - pattern: ".*/Podfile\\.lock$"
+      description: "CocoaPods lock file"
+    - pattern: ".*/pnpm-lock\\.yaml$"
+      description: "pnpm lock file"
+    
+    # JSON configuration files (with exceptions)
+    - pattern: ".*\\.json$"
+      description: "JSON configuration files"
+    
+    # Data export files
+    - pattern: ".*\\.csv$"
+      description: "CSV data files"
+    
+    # Schema definition files
+    - pattern: ".*\\.xsd$"
+      description: "XML Schema Definition files"
+    
+    # Graphics and image files
+    - pattern: ".*\\.svg$"
+      description: "SVG graphics files"
+    - pattern: ".*\\.png$"
+      description: "PNG image files"
+    - pattern: ".*\\.webp$"
+      description: "WebP image files"
+    - pattern: ".*\\.(jpeg|jpg|gif|ico|tiff)$"
+      description: "Image files"
+    - pattern: ".*\\.lottie$"
+      description: "Lottie animation files"
+    
+    # Font files
+    - pattern: ".*\\.ttf$"
+      description: "TrueType font files"
+    
+    # Binary and archive files
+    - pattern: ".*\\.(jar|zip|tar|enc)$"
+      description: "Binary and archive files"
+    
+    # Media files
+    - pattern: ".*\\.(pdf|mp3|wave|wav)$"
+      description: "Media files"
+    
+    # Certificate and security files
+    - pattern: ".*\\.(crt|pub|csr)$"
+      description: "Certificate files"
+    
+    # Lock files (general)
+    - pattern: ".*\\.(lock|resolved|sum)$"
+      description: "Lock and checksum files"
+    
+    # Xcode project files
+    - pattern: ".*\\.(pbxproj|xcworkspacedata|xcscheme)$"
+      description: "Xcode project files"
+    
+    # Git configuration
+    - pattern: ".*\\.(gitignore|gitkeep|eslintignore)$"
+      description: "Git and linter ignore files"
+    
+    # Test snapshots
+    - pattern: ".*\\.snap$"
+      description: "Jest snapshot files"
+    
+    # XML configuration files
+    - pattern: ".*\\.xml$"
+      description: "XML configuration files"
+    
+    # Build/distribution directories
+    - pattern: ".*/dist/.*"
+      description: "Distribution/build output directories"
+    - pattern: ".*/build/.*"
+      description: "Build output directories"
+    - pattern: ".*/node_modules/.*"
+      description: "Node modules"
+    - pattern: ".*/vendor/.*"
+      description: "Vendor dependencies"
+    
+    # Source map files
+    - pattern: ".*\\.map$"
+      description: "Source map files"
+    
+    # OpenAPI generator files
+    - pattern: ".*/\\.openapi-generator/.*"
+      description: "OpenAPI generator metadata"
+    - pattern: ".*\\.openapi-generator-ignore$"
+      description: "OpenAPI generator ignore file"
+  
+  # Files to ALWAYS include (exceptions to exclusion patterns)
+  always_include:
+    # Project configuration files
+    - pattern: ".*/package\\.json$"
+      description: "npm package configuration"
+    
+    # Documentation files
+    - pattern: ".*/README\\.md$"
+      description: "README documentation"
+    - pattern: ".*/readme\\.md$"
+      description: "README documentation (lowercase)"
+    
+    # Android project files
+    - pattern: ".*/AndroidManifest\\.xml$"
+      description: "Android manifest files"
+    - pattern: ".*/src/.*/res/.*"
+      description: "Android resource files"
+  
+  # Repository-specific exclusion rules
+  repository_specific: {}
+
+# ============================================================================
+# Metrics Configuration
+# ============================================================================
+metrics:
+  # Commit metrics
+  commits:
+    enabled: true
+    track_message: true
+    normalize_message: true  # Remove line breaks from commit messages
+    
+  # Line change metrics
+  lines:
+    enabled: true
+    track_added: true
+    track_removed: true
+    track_changed: true
+    
+  # File metrics
+  files:
+    enabled: true
+    track_count: true
+    track_types: true
+  
+  # LOC (Lines of Code) metrics
+  loc:
+    enabled: true
+    track_total_lines: true
+    track_by_language: true
+    track_contributor_count: true
+
+# ============================================================================
+# Grafana Dashboard Configuration
+# ============================================================================
+grafana:
+  # Dashboard settings
+  dashboards:
+    - name: "Git Stats - Team Overview"
+      description: "Team-wide metrics across all repositories"
+      enabled: true
+      
+    - name: "Git Stats - Repository Overview"
+      description: "Per-repository metrics and comparisons"
+      enabled: true
+      
+    - name: "Git Stats - Personal Overview"
+      description: "Individual contributor metrics"
+      enabled: true
+      
+    - name: "Git Stats - LOC Analysis"
+      description: "Lines of code and contributor analysis"
+      enabled: true
+
+# ============================================================================
+# Notes
+# ============================================================================
+# - All regex patterns use Python regex syntax
+# - Patterns are matched against full file paths
+# - Exclusion patterns are applied AFTER inclusion patterns
+# - Repository-specific rules override global rules
+# - Email addresses in mapping are case-insensitive
+
+

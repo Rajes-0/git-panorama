@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #181B1F;
+            color: #c9d1d9;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+        }
+        .calendar-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            width: 100%;
+            max-width: 100%;
+        }
+        .calendar-body {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+        }
+        .day-labels {
+            display: flex;
+            flex-direction: column;
+            margin-right: 8px;
+            justify-content: space-around;
+        }
+        .day-label {
+            height: 18px;
+            font-size: 11px;
+            line-height: 18px;
+            color: #8b949e;
+        }
+        .weeks {
+            display: flex;
+            flex: 1;
+            gap: 3px;
+        }
+        .week {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1;
+            max-width: 20px;
+        }
+        .day {
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 18px;
+            max-height: 18px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: rgba(235, 237, 240, 0.15);
+        }
+        .day:hover {
+            outline: 1px solid #c9d1d9;
+            transform: scale(1.3);
+            z-index: 10;
+        }
+        .tooltip {
+            position: fixed;
+            background: #1c2128;
+            border: 1px solid #30363d;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            white-space: nowrap;
+        }
+        .legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 12px;
+            font-size: 11px;
+            color: #8b949e;
+            padding: 0;
+        }
+        .legend-item {
+            width: 15px;
+            height: 15px;
+            margin: 0 3px;
+            border-radius: 3px;
+        }
+        .loading {
+            text-align: center;
+            color: #8b949e;
+            font-size: 14px;
+        }
+        .error {
+            text-align: center;
+            color: #f85149;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">Loading contribution data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="calendar-container" class="calendar-wrapper" style="display: none;"></div>
+        <div id="legend" class="legend" style="display: none;">
+            <span style="margin-right: 5px;">Less</span>
+            <div class="legend-item" style="background-color: rgba(235, 237, 240, 0.15)"></div>
+            <div class="legend-item" style="background-color: #9be9a8"></div>
+            <div class="legend-item" style="background-color: #40c463"></div>
+            <div class="legend-item" style="background-color: #30a14e"></div>
+            <div class="legend-item" style="background-color: #216e39"></div>
+            <span style="margin-left: 5px;">More</span>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    
+    <script>
+        // Parse URL parameters from Grafana
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const vars = {};
+            
+            // Get from and to timestamps
+            const from = params.get('from') || params.get('var-__from');
+            const to = params.get('to') || params.get('var-__to');
+            
+            // Get repository filter
+            let repository = params.get('var-repository');
+            if (repository === 'All' || repository === '$__all') {
+                repository = '*';
+            }
+            
+            // Get author filter
+            let author = params.get('var-author');
+            if (author === 'All' || author === '$__all') {
+                author = '*';
+            }
+            
+            return {
+                from: from ? new Date(parseInt(from)) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+                to: to ? new Date(parseInt(to)) : new Date(),
+                repository: repository || '*',
+                author: author || '*'
+            };
+        }
+        
+        function getColor(count, maxCommits) {
+            if (count === 0) return 'rgba(235, 237, 240, 0.15)'; // Subtle gray for dark mode
+            if (count <= Math.max(1, maxCommits * 0.25)) return '#9be9a8';
+            if (count <= Math.max(2, maxCommits * 0.5)) return '#40c463';
+            if (count <= Math.max(3, maxCommits * 0.75)) return '#30a14e';
+            return '#216e39';
+        }
+        
+        function generateCalendar(dailyCommits, startDate, endDate) {
+            // Adjust start_date to previous Sunday
+            const start = new Date(startDate);
+            const daysSinceSunday = (start.getDay() + 7) % 7;
+            start.setDate(start.getDate() - daysSinceSunday);
+            
+            const end = new Date(endDate);
+            const weeks = [];
+            let currentDate = new Date(start);
+            
+            while (currentDate <= end) {
+                const week = [];
+                for (let i = 0; i < 7; i++) {
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    const count = dailyCommits[dateStr] || 0;
+                    week.push({
+                        date: dateStr,
+                        count: count
+                    });
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                weeks.push(week);
+            }
+            
+            return weeks;
+        }
+        
+        function renderCalendar(weeks, maxCommits) {
+            const container = document.getElementById('calendar-container');
+            container.innerHTML = '';
+            
+            const calendarBody = document.createElement('div');
+            calendarBody.className = 'calendar-body';
+            
+            // Day labels
+            const dayLabels = document.createElement('div');
+            dayLabels.className = 'day-labels';
+            ['', 'Mon', '', 'Wed', '', 'Fri', ''].forEach(label => {
+                const dayLabel = document.createElement('div');
+                dayLabel.className = 'day-label';
+                dayLabel.textContent = label;
+                dayLabels.appendChild(dayLabel);
+            });
+            calendarBody.appendChild(dayLabels);
+            
+            // Weeks
+            const weeksContainer = document.createElement('div');
+            weeksContainer.className = 'weeks';
+            
+            weeks.forEach(week => {
+                const weekDiv = document.createElement('div');
+                weekDiv.className = 'week';
+                
+                week.forEach(day => {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'day';
+                    dayDiv.style.backgroundColor = getColor(day.count, maxCommits);
+                    dayDiv.dataset.date = day.date;
+                    dayDiv.dataset.count = day.count;
+                    
+                    // Tooltip events
+                    dayDiv.addEventListener('mouseenter', (e) => {
+                        const tooltip = document.getElementById('tooltip');
+                        const commitText = day.count === 1 ? 'commit' : 'commits';
+                        tooltip.textContent = `${day.count} ${commitText} on ${day.date}`;
+                        tooltip.style.display = 'block';
+                    });
+                    
+                    dayDiv.addEventListener('mousemove', (e) => {
+                        const tooltip = document.getElementById('tooltip');
+                        tooltip.style.left = e.clientX + 10 + 'px';
+                        tooltip.style.top = e.clientY + 10 + 'px';
+                    });
+                    
+                    dayDiv.addEventListener('mouseleave', () => {
+                        document.getElementById('tooltip').style.display = 'none';
+                    });
+                    
+                    weekDiv.appendChild(dayDiv);
+                });
+                
+                weeksContainer.appendChild(weekDiv);
+            });
+            
+            calendarBody.appendChild(weeksContainer);
+            container.appendChild(calendarBody);
+            
+            // Show calendar and legend
+            document.getElementById('loading').style.display = 'none';
+            container.style.display = 'flex';
+            document.getElementById('legend').style.display = 'flex';
+        }
+        
+        async function fetchData() {
+            const params = getUrlParams();
+            const ES_URL = 'http://localhost:9200';
+            const ES_INDEX = 'git-commits';
+            
+            // Build query
+            const query = {
+                size: 0,
+                query: {
+                    bool: {
+                        must: [
+                            {
+                                range: {
+                                    commit_timestamp: {
+                                        gte: params.from.toISOString(),
+                                        lte: params.to.toISOString()
+                                    }
+                                }
+                            }
+                        ],
+                        filter: []
+                    }
+                },
+                aggs: {
+                    commits_by_day: {
+                        date_histogram: {
+                            field: 'commit_timestamp',
+                            calendar_interval: 'day',
+                            min_doc_count: 0,
+                            extended_bounds: {
+                                min: params.from.toISOString(),
+                                max: params.to.toISOString()
+                            }
+                        },
+                        aggs: {
+                            unique_commits: {
+                                cardinality: {
+                                    field: 'commit_id'
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // Add repository filter
+            if (params.repository && params.repository !== '*') {
+                const repos = params.repository.split(',').map(r => r.trim());
+                if (repos.length === 1) {
+                    query.query.bool.filter.push({ term: { repository: repos[0] } });
+                } else {
+                    query.query.bool.filter.push({ terms: { repository: repos } });
+                }
+            }
+            
+            // Add author filter
+            if (params.author && params.author !== '*') {
+                const authors = params.author.split(',').map(a => a.trim());
+                if (authors.length === 1) {
+                    query.query.bool.filter.push({ term: { author_name: authors[0] } });
+                } else {
+                    query.query.bool.filter.push({ terms: { author_name: authors } });
+                }
+            }
+            
+            try {
+                const response = await fetch(`${ES_URL}/${ES_INDEX}/_search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(query)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Process data
+                const dailyCommits = {};
+                let maxCommits = 0;
+                
+                if (data.aggregations && data.aggregations.commits_by_day) {
+                    data.aggregations.commits_by_day.buckets.forEach(bucket => {
+                        const dateStr = bucket.key_as_string.split('T')[0];
+                        const count = Math.round(bucket.unique_commits.value);
+                        dailyCommits[dateStr] = count;
+                        maxCommits = Math.max(maxCommits, count);
+                    });
+                }
+                
+                // Generate and render calendar
+                const weeks = generateCalendar(dailyCommits, params.from, params.to);
+                renderCalendar(weeks, maxCommits);
+                
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('loading').style.display = 'none';
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = `Error: ${error.message}. Make sure Elasticsearch is running at ${ES_URL}`;
+                errorDiv.style.display = 'block';
+            }
+        }
+        
+        // Initial load
+        fetchData();
+        
+        // Reload when Grafana updates (listen for messages from parent)
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'grafana-update') {
+                fetchData();
+            }
+        });
+        
+        // Auto-refresh every 30 seconds
+        setInterval(fetchData, 30000);
+    </script>
+</body>
+</html>
+

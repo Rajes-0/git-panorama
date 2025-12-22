@@ -1,0 +1,115 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: gitstats-elasticsearch
+    volumes:
+      - type: bind
+        source: ./config/elasticsearch
+        target: /usr/share/elasticsearch/config
+      - type: bind
+        source: ./config/elasticsearch/log4j2.properties
+        target: /usr/share/elasticsearch/config/log4j2.properties
+      - type: bind
+        source: ./config/elasticsearch/jvm.options
+        target: /usr/share/elasticsearch/config/jvm.options
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - http.port=9200
+      - http.cors.allow-origin=http://localhost:1358,http://127.0.0.1:1358,http://localhost:3000,http://127.0.0.1:3000
+      - http.cors.enabled=true
+      - http.cors.allow-headers=X-Requested-With,X-Auth-Token,Content-Type,Content-Length,Authorization
+      - http.cors.allow-credentials=true
+      - bootstrap.memory_lock=false
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - ELASTIC_USERNAME=${ELASTIC_USERNAME:-elastic}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-QdKgBPQqCyicNr3WNzYnvAXobj8StnvL}
+      - xpack.security.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - indices.breaker.request.limit=60%
+      - indices.breaker.total.limit=70%
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          memory: 2560m
+        reservations:
+          memory: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      back0:
+        aliases:
+          - elasticsearch
+
+  dejavu:
+    image: appbaseio/dejavu:latest
+    container_name: gitstats-dejavu
+    ports:
+      - "1358:1358"
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - back0
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gitstats-grafana
+    volumes:
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./config/grafana/provisioning/:/etc/grafana/provisioning/
+      - ./config/grafana/provisioning/dashboards/contribution-calendar-dynamic.html:/usr/share/grafana/public/contribution-calendar.html
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=
+    ports:
+      - "3000:3000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
+    networks:
+      - back0
+
+volumes:
+  elasticsearch-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  back0:
+    driver: bridge
+
