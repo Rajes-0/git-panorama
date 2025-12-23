@@ -4,10 +4,21 @@
 [![Deploy to GitHub Pages](https://github.com/kibotu/git-panorama/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/kibotu/git-panorama/actions/workflows/deploy-gh-pages.yml)
 [![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.17.0-005571?logo=elasticsearch&logoColor=white)](https://www.elastic.co/downloads/elasticsearch)
 [![Grafana](https://img.shields.io/badge/Grafana-latest-F46800?logo=grafana&logoColor=white)](https://grafana.com/grafana/download)
+[![Medium Article](https://img.shields.io/badge/Medium-Article-12100E?logo=medium&logoColor=white)](https://medium.com/@kibotu/git-panorama-mapping-your-teams-codebase-journey-438dfb4d9bb8)
 
 > Who's shipping? What's shipping? Where's the effort going?
 
 Your git history knows. Let's ask it. 
+
+---
+
+## 🚀 Quick Start - Live Demo
+
+**Want to see it in action first?** Check out the live demo:
+
+👉 **[kibotu.github.io/git-panorama](https://kibotu.github.io/git-panorama/)**
+
+Explore interactive dashboards showcasing real git analytics without any setup required.
 
 ---
 
