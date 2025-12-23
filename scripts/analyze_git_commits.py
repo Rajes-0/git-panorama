@@ -227,7 +227,7 @@ class GitCommitsAnalyzer:
     
     def normalize_message(self, message: str) -> str:
         """Normalize commit message by removing line breaks."""
-        if self.config['metrics']['commits'].get('normalize_message', True):
+        if self.config.get('metrics', {}).get('commits', {}).get('normalize_message', True):
             # Replace line breaks with spaces and collapse multiple spaces
             return ' '.join(message.split())
         return message
