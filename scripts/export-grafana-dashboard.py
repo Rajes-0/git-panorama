@@ -10,12 +10,10 @@ This script:
 """
 
 import argparse
-import json
 import os
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -55,7 +53,7 @@ class GrafanaExporter:
         print("✗ Grafana did not become ready in time")
         return False
 
-    def get_dashboard_by_uid(self, uid: str) -> Optional[Dict]:
+    def get_dashboard_by_uid(self, uid: str) -> dict | None:
         """Get dashboard JSON by UID."""
         try:
             response = requests.get(
@@ -69,7 +67,7 @@ class GrafanaExporter:
             print(f"✗ Error fetching dashboard {uid}: {e}")
             return None
 
-    def search_dashboards(self) -> List[Dict]:
+    def search_dashboards(self) -> list[dict]:
         """Search for all dashboards."""
         try:
             response = requests.get(
@@ -91,7 +89,7 @@ class GrafanaExporter:
         height: int = 400,
         time_from: str = "now-30d",
         time_to: str = "now",
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         """Render a panel as PNG image."""
         url = (
             f"{self.grafana_url}/render/d-solo/{dashboard_uid}/"
@@ -180,7 +178,7 @@ class GrafanaExporter:
     def generate_html(
         self,
         dashboard_title: str,
-        panels: List[Dict],
+        panels: list[dict],
         time_from: str,
         time_to: str,
         output_path: Path,
@@ -302,7 +300,7 @@ class GrafanaExporter:
 
         <div class="warning">
             <strong>⚠️ Static Snapshot:</strong> This is a static snapshot of the Grafana dashboard.
-            For live, interactive dashboards with filtering and drill-down capabilities, 
+            For live, interactive dashboards with filtering and drill-down capabilities,
             please visit the full Grafana instance.
         </div>
 """
@@ -314,13 +312,13 @@ class GrafanaExporter:
                 {panel['title']}
                 <span class="badge">Panel {panel['id']}</span>
             </h2>
-            <img src="images/{panel['filename']}" 
-                 alt="{panel['title']}" 
+            <img src="images/{panel['filename']}"
+                 alt="{panel['title']}"
                  loading="lazy">
         </div>
 """
 
-        html += f"""
+        html += """
     </div>
     <footer>
         <p>
