@@ -49,7 +49,7 @@ repositories:
   
   # Git repository URLs to clone/analyze
   repository_urls:
-    - "git@github.com:yourorg/your-repo.git"
+    - "git@github.com:kibotu/git-panorama.git"
     # Add more repositories here
   
   # Repositories where ALL files should be included (no exclusions)
