@@ -5,7 +5,7 @@
 
 > Who's shipping? What's shipping? Where's the effort going?
 
-Your git history knows. Let's ask it.
+Your git history knows. Let's ask it. 
 
 ---
 
