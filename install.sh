@@ -7,6 +7,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
+CONFIG_FILE="${CONFIG_FILE:-${SCRIPT_DIR}/config.yaml}"
+
 echo "=========================================="
 echo "GitStats - Installation & Setup"
 echo "=========================================="
@@ -54,9 +56,19 @@ docker compose up -d
 echo "✓ Docker services started"
 echo ""
 
+# Read Elasticsearch configuration
+if [ -f "${CONFIG_FILE}" ] && command -v python3 &> /dev/null; then
+    ES_HOST="${ES_HOST:-$(python3 "${SCRIPT_DIR}/scripts/read-config.py" "${CONFIG_FILE}" "elasticsearch.host" 2>/dev/null || echo "localhost")}"
+    ES_PORT="${ES_PORT:-$(python3 "${SCRIPT_DIR}/scripts/read-config.py" "${CONFIG_FILE}" "elasticsearch.port" 2>/dev/null || echo "9200")}"
+else
+    ES_HOST="${ES_HOST:-localhost}"
+    ES_PORT="${ES_PORT:-9200}"
+fi
+ES_URL="http://${ES_HOST}:${ES_PORT}"
+
 # Wait for Elasticsearch
-echo "Waiting for Elasticsearch to be ready..."
-until curl -s http://localhost:9200/_cluster/health > /dev/null 2>&1; do
+echo "Waiting for Elasticsearch to be ready at ${ES_URL}..."
+until curl -s "${ES_URL}/_cluster/health" > /dev/null 2>&1; do
     echo "  Still waiting..."
     sleep 5
 done
@@ -74,7 +86,7 @@ echo "=========================================="
 echo ""
 echo "Services running:"
 echo "  • Grafana:       http://localhost:3000 (admin/admin)"
-echo "  • Elasticsearch: http://localhost:9200"
+echo "  • Elasticsearch: ${ES_URL}"
 echo "  • Dejavu:        http://localhost:1358"
 echo ""
 echo "Next steps:"

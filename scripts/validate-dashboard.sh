@@ -4,8 +4,21 @@
 
 set -e
 
-DASHBOARD_FILE="config/grafana/provisioning/dashboards/repository-overview.json"
-ES_URL="${ES_URL:-http://localhost:9200}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
+CONFIG_FILE="${CONFIG_FILE:-${PROJECT_DIR}/config.yaml}"
+DASHBOARD_FILE="${PROJECT_DIR}/config/grafana/provisioning/dashboards/repository-overview.json"
+
+# Read configuration from config.yaml (with fallback to environment variables)
+if [ -f "${CONFIG_FILE}" ] && command -v python3 &> /dev/null; then
+    ES_HOST="${ES_HOST:-$(python3 "${SCRIPT_DIR}/read-config.py" "${CONFIG_FILE}" "elasticsearch.host" 2>/dev/null || echo "localhost")}"
+    ES_PORT="${ES_PORT:-$(python3 "${SCRIPT_DIR}/read-config.py" "${CONFIG_FILE}" "elasticsearch.port" 2>/dev/null || echo "9200")}"
+else
+    ES_HOST="${ES_HOST:-localhost}"
+    ES_PORT="${ES_PORT:-9200}"
+fi
+
+ES_URL="${ES_URL:-http://${ES_HOST}:${ES_PORT}}"
 GRAFANA_URL="${GRAFANA_URL:-http://localhost:3000}"
 
 echo "🔍 Validating Grafana Dashboard Configuration"
