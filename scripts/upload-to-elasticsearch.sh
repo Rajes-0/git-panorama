@@ -4,11 +4,25 @@
 
 set -e
 
-ES_HOST="${ES_HOST:-localhost}"
-ES_PORT="${ES_PORT:-9200}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
+CONFIG_FILE="${CONFIG_FILE:-${PROJECT_DIR}/config.yaml}"
+
+# Read configuration from config.yaml (with fallback to environment variables)
+if [ -f "${CONFIG_FILE}" ] && command -v python3 &> /dev/null; then
+    ES_HOST="${ES_HOST:-$(python3 "${SCRIPT_DIR}/read-config.py" "${CONFIG_FILE}" "elasticsearch.host" 2>/dev/null || echo "localhost")}"
+    ES_PORT="${ES_PORT:-$(python3 "${SCRIPT_DIR}/read-config.py" "${CONFIG_FILE}" "elasticsearch.port" 2>/dev/null || echo "9200")}"
+    BATCH_SIZE="${BATCH_SIZE:-$(python3 "${SCRIPT_DIR}/read-config.py" "${CONFIG_FILE}" "elasticsearch.bulk_batch_size" 2>/dev/null || echo "3000")}"
+    DATA_DIR="${DATA_DIR:-$(python3 "${SCRIPT_DIR}/read-config.py" "${CONFIG_FILE}" "analysis.output_directory" 2>/dev/null || echo "./git-stats")}"
+else
+    # Fallback to defaults if config not available
+    ES_HOST="${ES_HOST:-localhost}"
+    ES_PORT="${ES_PORT:-9200}"
+    BATCH_SIZE="${BATCH_SIZE:-3000}"
+    DATA_DIR="${DATA_DIR:-./git-stats}"
+fi
+
 ES_URL="http://${ES_HOST}:${ES_PORT}"
-DATA_DIR="${DATA_DIR:-./git-stats}"
-BATCH_SIZE="${BATCH_SIZE:-3000}"  # Number of documents per batch (reduced for memory constraints)
 MAX_RETRIES=3  # Maximum number of retries for failed batches
 BATCH_DELAY="${BATCH_DELAY:-1}"  # Delay in seconds between batches to allow ES to process
 

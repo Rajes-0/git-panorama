@@ -85,8 +85,10 @@ elasticsearch:
   # Index name for commit data
   commit_index: "git-commits"
   
-  # Batch size for bulk uploads
-  bulk_batch_size: 1000
+  # Batch size for bulk uploads (number of documents per batch)
+  # Higher values = faster uploads but more memory usage
+  # Recommended: 1000-5000 depending on available memory
+  bulk_batch_size: 3000
 
 
 # ============================================================================
@@ -219,17 +221,6 @@ exclusions:
   # Repository-specific exclusion rules
   repository_specific: {}
 
-
-# ============================================================================
-# Grafana Dashboard Configuration
-# ============================================================================
-grafana:
-  # Dashboard settings
-  dashboards:
-    - name: "Git Stats - Repository Overview"
-      description: "Per-repository metrics and comparisons"
-      enabled: true
-
 # ============================================================================
 # Notes
 # ============================================================================
@@ -238,5 +229,25 @@ grafana:
 # - Exclusion patterns are applied AFTER inclusion patterns
 # - Repository-specific rules override global rules
 # - Email addresses in mapping are case-insensitive
+#
+# Configuration Change Impact:
+# - Settings that require Docker restart:
+#   * elasticsearch.host, elasticsearch.port (requires: docker compose restart)
+#   * Changes to docker-compose.yml or config/grafana/* (requires: docker compose restart)
+#
+# - Settings that take effect on next ./run.sh:
+#   * email_mapping - immediately affects author name mapping
+#   * repositories.* - affects which repos are cloned/analyzed
+#   * analysis.* - affects date range, branch filtering, merge commits
+#   * exclusions.* - affects which files are counted in metrics
+#   * parallelization.max_workers - affects analysis speed
+#   * elasticsearch.bulk_batch_size - affects upload batch size
+#   * elasticsearch.commit_index - affects which index is used
+#
+# - Environment variable overrides (highest priority):
+#   * ES_HOST, ES_PORT - override elasticsearch.host/port
+#   * BATCH_SIZE - overrides elasticsearch.bulk_batch_size
+#   * DATA_DIR - overrides analysis.output_directory
+#   * CONFIG_FILE - use different config file
 
 
