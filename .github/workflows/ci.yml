@@ -207,12 +207,20 @@ jobs:
             echo "Error: git-stats directory not created"
             exit 1
           fi
-          if [ ! -f "git-stats/test-repo.json" ]; then
+          if [ ! -f "git-stats/commits-bulk.json" ]; then
             echo "Error: Analysis output file not created"
             exit 1
           fi
+          if [ ! -f "git-stats/commits-summary.json" ]; then
+            echo "Error: Summary file not created"
+            exit 1
+          fi
           echo "✓ Analysis completed successfully"
-          cat git-stats/test-repo.json | head -20
+          echo "=== Summary ==="
+          cat git-stats/commits-summary.json
+          echo ""
+          echo "=== First 20 lines of bulk data ==="
+          head -20 git-stats/commits-bulk.json
 
   integration-test:
     name: Integration Test
