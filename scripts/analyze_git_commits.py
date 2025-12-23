@@ -55,7 +55,8 @@ class GitCommitsAnalyzer:
         self.cache_lock = Lock()
         
         # Get max workers from config or use default
-        self.max_workers = self.config.get('parallelization', {}).get('max_workers', os.cpu_count() or 4)
+        max_workers_config = self.config.get('parallelization', {}).get('max_workers')
+        self.max_workers = max_workers_config if max_workers_config is not None else (os.cpu_count() or 4)
         
     def load_config(self, config_file: str) -> dict:
         """Load configuration from YAML file."""
